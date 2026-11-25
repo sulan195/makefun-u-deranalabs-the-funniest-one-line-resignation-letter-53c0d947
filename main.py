@@ -17,6 +17,7 @@ competition's smaller-text tie-break.
 """
 
 import os
+import unicodedata
 
 LINE = (
     "Dear cron: I have run the 03:00 cleanup for 1,461 nights; "
@@ -31,9 +32,10 @@ def validate(line: str) -> None:
 
     The gate requires UTF-8 text of 1 to 140 characters, not only
     white space. We additionally reject internal newlines, carriage
-    returns and control characters, and lone surrogates (which are
-    not valid UTF-8 text), so the file the program writes is always
-    one clean line.
+    returns and every control character (Unicode category Cc),
+    line/paragraph separators (Zl/Zp), and lone surrogates (which
+    are not valid UTF-8 text), so the file the program writes is
+    always one clean line.
     """
     if not isinstance(line, str):
         raise ValueError("entry must be a string")
@@ -47,17 +49,23 @@ def validate(line: str) -> None:
         raise ValueError("entry must be a single line")
     for ch in line:
         code = ord(ch)
-        if code < 0x20 or code == 0x7F:
-            raise ValueError(f"entry contains a control character U+{code:04X}")
+        if unicodedata.category(ch) in ("Cc", "Zl", "Zp"):
+            raise ValueError(
+                f"entry contains a disallowed character U+{code:04X}"
+            )
         if 0xD800 <= code <= 0xDFFF:
             raise ValueError(f"entry contains a lone surrogate U+{code:04X}")
     line.encode("utf-8")  # raises on lone surrogates
 
 
 def output_dir() -> str:
-    """Where entry.txt goes: $MAKEFUN_OUTPUT_DIR, else /output."""
-    directory = os.environ.get("MAKEFUN_OUTPUT_DIR", "").strip()
-    return directory or "/output"
+    """Where entry.txt goes: $MAKEFUN_OUTPUT_DIR, else /output.
+
+    A nonempty value is used exactly as given; only an empty value
+    falls back to /output.
+    """
+    directory = os.environ.get("MAKEFUN_OUTPUT_DIR", "")
+    return directory if directory != "" else "/output"
 
 
 def main() -> int:

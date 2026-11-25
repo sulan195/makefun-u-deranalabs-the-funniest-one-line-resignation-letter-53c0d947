@@ -73,6 +73,16 @@ class TestValidate(unittest.TestCase):
         with self.assertRaises(ValueError):
             entry.validate("bell\x07rings")
 
+    def test_rejects_c1_control(self):
+        with self.assertRaises(ValueError):
+            entry.validate("next\u0085line")
+
+    def test_rejects_line_separator(self):
+        with self.assertRaises(ValueError):
+            entry.validate("one\u2028two")
+        with self.assertRaises(ValueError):
+            entry.validate("one\u2029two")
+
     def test_rejects_lone_surrogate(self):
         with self.assertRaises(ValueError):
             entry.validate("bad\ud800line")
@@ -95,10 +105,10 @@ class TestOutputDir(unittest.TestCase):
         os.environ.pop("MAKEFUN_OUTPUT_DIR", None)
         self.assertEqual(entry.output_dir(), "/output")
 
-    def test_blank_env_falls_back(self):
-        os.environ["MAKEFUN_OUTPUT_DIR"] = "   "
+    def test_surrounding_spaces_used_unchanged(self):
+        os.environ["MAKEFUN_OUTPUT_DIR"] = " /tmp/out "
         try:
-            self.assertEqual(entry.output_dir(), "/output")
+            self.assertEqual(entry.output_dir(), " /tmp/out ")
         finally:
             del os.environ["MAKEFUN_OUTPUT_DIR"]
 
