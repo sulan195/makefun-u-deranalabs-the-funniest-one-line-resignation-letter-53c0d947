@@ -55,7 +55,7 @@ def validate(line: str) -> None:
             )
         if 0xD800 <= code <= 0xDFFF:
             raise ValueError(f"entry contains a lone surrogate U+{code:04X}")
-    line.encode("utf-8")  # raises on lone surrogates
+    line.encode("utf-8")  # defense-in-depth: confirm encodable UTF-8
 
 
 def output_dir() -> str:
